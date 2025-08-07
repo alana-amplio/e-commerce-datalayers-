@@ -1,0 +1,61 @@
+add_action('wp_footer', 'custom_datalayer_view_item_script');
+
+function custom_datalayer_view_item_script() {
+    if (!is_product()) return;
+
+    global $product;
+
+    // Pegando dados do produto
+    $product_id = $product->get_id();
+    $product_name = $product->get_name();
+    $product_price = $product->get_price();
+    $product_categories = wp_get_post_terms($product_id, 'product_cat', array('fields' => 'names'));
+
+    $category1 = $product_categories[0] ?? '';
+    $category2 = $product_categories[1] ?? '';
+
+    // Pegando informações do usuário
+    $current_user = wp_get_current_user();
+    $user_role = (array) $current_user->roles;
+    $user_role = !empty($user_role) ? $user_role[0] : 'guest';
+
+    // URL
+    $event_url = get_permalink($product_id);
+
+    ?>
+    <script>
+    window.dataLayer = window.dataLayer || [];
+    window.dataLayer.push({ ecommerce: null });
+    dataLayer.push({
+      event: "view_item",
+      ecommerce: {
+        currency: "<?php echo get_woocommerce_currency(); ?>",
+        value: "<?php echo $product_price; ?>",
+        items: [
+          {
+            id: "<?php echo $product_id; ?>",
+            name: "<?php echo $product_name; ?>",
+            quantity: 1,
+            price: "<?php echo $product_price; ?>",
+            item_category: "<?php echo esc_js($category1); ?>",
+            item_category2: "<?php echo esc_js($category2); ?>"
+          }
+        ]
+      },
+      automatedParameters: {
+        page_title: "<?php echo esc_js(get_the_title($product_id)); ?>",
+        post_type: "product",
+        post_id: <?php echo $product_id; ?>,
+        plugin: "manual",
+        user_role: "<?php echo $user_role; ?>",
+        event_url: "<?php echo esc_url($event_url); ?>",
+        event_id: "<?php echo wp_generate_uuid4(); ?>"
+      },
+      triggerType: {
+        type: "ecommerce"
+      },
+      manualDataLayer: "dataLayer"
+    });
+    </script>
+    <?php
+}
