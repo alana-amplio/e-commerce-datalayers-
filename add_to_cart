@@ -1,0 +1,56 @@
+add_action('wp_footer', 'custom_datalayer_add_to_cart_script');
+
+function custom_datalayer_add_to_cart_script() {
+    if (!is_product()) return;
+
+    global $product;
+
+    $product_id = $product->get_id();
+    $product_name = $product->get_name();
+    $product_price = $product->get_price();
+    $product_currency = get_woocommerce_currency();
+    $product_categories = wp_get_post_terms($product_id, 'product_cat', ['fields' => 'names']);
+    $category = $product_categories[0] ?? '';
+    $variant = $product->get_attribute('pa_color'); // ou outra variação se existir
+
+    ?>
+    <script>
+    window.dataLayer = window.dataLayer || [];
+
+    document.addEventListener('DOMContentLoaded', function () {
+      const addToCartBtn = document.querySelector('form.cart button[type="submit"]');
+      if (!addToCartBtn) return;
+
+      addToCartBtn.addEventListener('click', function () {
+        const quantityInput = document.querySelector('input.qty');
+        const quantity = quantityInput ? parseInt(quantityInput.value) : 1;
+
+        // Limpa ecommerce anterior
+        window.dataLayer.push({ ecommerce: null });
+
+        // Dispara evento add_to_cart
+        window.dataLayer.push({
+          event: "add_to_cart",
+          ecommerce: {
+            currency: "<?php echo $product_currency; ?>",
+            value: <?php echo $product_price; ?>,
+            items: [
+              {
+                id: "<?php echo $product_id; ?>",
+                item_id: "<?php echo $product_id; ?>",
+                item_name: "<?php echo $product_name; ?>",
+                currency: "<?php echo $product_currency; ?>",
+                price: <?php echo $product_price; ?>,
+                item_brand: "",
+                item_category: "<?php echo esc_js($category); ?>",
+                item_variant: "<?php echo esc_js($variant); ?>",
+                quantity: quantity
+              }
+            ]
+          }
+        });
+      });
+    });
+    </script>
+    <?php
+}
