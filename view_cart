@@ -1,0 +1,59 @@
+add_action('wp_footer', 'custom_datalayer_view_cart_script');
+
+function custom_datalayer_view_cart_script() {
+    if (!is_cart()) return;
+
+    $cart = WC()->cart;
+    if (!$cart || $cart->is_empty()) return;
+
+    $currency = get_woocommerce_currency();
+    $total = $cart->get_total('edit'); // valor bruto sem formatação
+
+    $items_js = [];
+
+    foreach ($cart->get_cart() as $cart_item) {
+        $product = $cart_item['data'];
+        $product_id = $product->get_id();
+        $product_name = $product->get_name();
+        $product_price = $product->get_price();
+        $product_quantity = $cart_item['quantity'];
+        $product_categories = wp_get_post_terms($product_id, 'product_cat', ['fields' => 'names']);
+        $category = $product_categories[0] ?? '';
+        $variant = $product->get_attribute('pa_color'); // ajuste se usar outra variação
+
+        $items_js[] = [
+            'id' => $product_id,
+            'item_id' => $product_id,
+            'item_name' => $product_name,
+            'currency' => $currency,
+            'price' => floatval($product_price),
+            'item_brand' => '',
+            'item_category' => $category,
+            'item_variant' => $variant,
+            'quantity' => intval($product_quantity),
+        ];
+    }
+
+    ?>
+    <script>
+    window.dataLayer = window.dataLayer || [];
+    window.dataLayer.push({ ecommerce: null });
+
+    window.dataLayer.push({
+      pageType: "cart",
+      event: "view_cart",
+      ecommerce: {
+        currency: "<?php echo esc_js($currency); ?>",
+        value: <?php echo floatval($total); ?>,
+        items: <?php echo json_encode($items_js); ?>
+      },
+      pages: {
+        cart: "/cart/",
+        checkout: "/checkout/",
+        orderReceived: "/checkout/order-received/",
+        myAccount: "/my-account/"
+      }
+    });
+    </script>
+    <?php
+}
